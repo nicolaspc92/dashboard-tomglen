@@ -18,7 +18,8 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
   .header-brand { font-family: 'Playfair Display', serif; }
   .accent-line { background: linear-gradient(90deg, #c2780a, #e8a020, #c2780a); height: 2px; }
-  .kpi-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .heatmap-cell { transition: all 0.2s; }
+  .countdown-tick { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body class="min-h-screen p-6">
@@ -43,53 +44,94 @@
 </div>
 
 <!-- KPIs -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="kpis">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card rounded-xl p-5 border-t-2 border-amber-600">
-    <div class="kpi-icon">🍽️</div>
-    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Total reservas</p>
+    <div class="text-2xl mb-2">🍽️</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-1">Total reservas</p>
     <p class="text-4xl font-bold text-white" id="kpi-total">—</p>
   </div>
   <div class="card rounded-xl p-5 border-t-2 border-emerald-600">
-    <div class="kpi-icon">✅</div>
-    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Confirmadas</p>
+    <div class="text-2xl mb-2">✅</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-1">Confirmadas</p>
     <p class="text-4xl font-bold text-emerald-400" id="kpi-confirmadas">—</p>
   </div>
   <div class="card rounded-xl p-5 border-t-2 border-orange-600">
-    <div class="kpi-icon">💳</div>
-    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Pendiente pago</p>
+    <div class="text-2xl mb-2">💳</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-1">Pendiente pago</p>
     <p class="text-4xl font-bold text-orange-400" id="kpi-pendiente">—</p>
   </div>
   <div class="card rounded-xl p-5 border-t-2 border-red-700">
-    <div class="kpi-icon">❌</div>
-    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Canceladas</p>
+    <div class="text-2xl mb-2">❌</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-1">Canceladas</p>
     <p class="text-4xl font-bold text-red-400" id="kpi-canceladas">—</p>
   </div>
 </div>
 
-<!-- Charts row -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+<!-- Gadgets row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 
-  <!-- Por sede -->
+  <!-- Próximas 3 reservas -->
   <div class="card rounded-xl p-5">
-    <p class="text-amber-400 font-semibold mb-4 tracking-wide">📍 Reservas por sede</p>
-    <canvas id="chart-sedes" height="200"></canvas>
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">⏳ Próximas reservas</p>
+    <div id="proximas-reservas" class="space-y-3">
+      <p class="text-stone-500 text-sm">Cargando...</p>
+    </div>
   </div>
 
-  <!-- Por hora -->
-  <div class="card rounded-xl p-5">
-    <p class="text-amber-400 font-semibold mb-4 tracking-wide">🕐 Distribución por hora</p>
-    <canvas id="chart-horas" height="200"></canvas>
+  <!-- Sede más activa -->
+  <div class="card rounded-xl p-5 flex flex-col justify-between">
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">👑 Sede más activa</p>
+    <div id="sede-activa" class="flex flex-col items-center justify-center flex-1 py-4">
+      <p class="text-stone-500 text-sm">Cargando...</p>
+    </div>
+  </div>
+
+  <!-- Hora pico -->
+  <div class="card rounded-xl p-5 flex flex-col justify-between">
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">🔥 Hora pico</p>
+    <div id="hora-pico" class="flex flex-col items-center justify-center flex-1 py-4">
+      <p class="text-stone-500 text-sm">Cargando...</p>
+    </div>
   </div>
 
 </div>
 
-<!-- Tabla de reservas -->
+<!-- Charts row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="card rounded-xl p-5">
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">📍 Reservas por sede</p>
+    <canvas id="chart-sedes" height="200"></canvas>
+  </div>
+  <div class="card rounded-xl p-5">
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">🕐 Distribución por hora</p>
+    <canvas id="chart-horas" height="200"></canvas>
+  </div>
+</div>
+
+<!-- Heatmap semanal -->
+<div class="card rounded-xl p-5 mb-6">
+  <p class="text-amber-400 font-semibold mb-5 tracking-wide">📅 Actividad por día de la semana</p>
+  <div id="heatmap" class="grid grid-cols-7 gap-2"></div>
+  <div class="flex items-center gap-3 mt-4 justify-end">
+    <span class="text-stone-500 text-xs">Menos</span>
+    <div class="flex gap-1">
+      <div class="w-4 h-4 rounded-sm bg-stone-800"></div>
+      <div class="w-4 h-4 rounded-sm bg-amber-900"></div>
+      <div class="w-4 h-4 rounded-sm bg-amber-700"></div>
+      <div class="w-4 h-4 rounded-sm bg-amber-500"></div>
+      <div class="w-4 h-4 rounded-sm bg-amber-300"></div>
+    </div>
+    <span class="text-stone-500 text-xs">Más</span>
+  </div>
+</div>
+
+<!-- Tabla -->
 <div class="card rounded-xl p-5">
   <p class="text-amber-400 font-semibold mb-4 tracking-wide">📋 Últimas reservas</p>
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+        <tr class="text-stone-400 text-xs uppercase tracking-wider border-b border-stone-700">
           <th class="text-left pb-3 pr-4">Nombre</th>
           <th class="text-left pb-3 pr-4">Sede</th>
           <th class="text-left pb-3 pr-4">Fecha</th>
@@ -98,7 +140,7 @@
           <th class="text-left pb-3">Estado</th>
         </tr>
       </thead>
-      <tbody id="tabla-reservas" class="text-slate-300"></tbody>
+      <tbody id="tabla-reservas" class="text-stone-300"></tbody>
     </table>
   </div>
 </div>
@@ -109,16 +151,18 @@ const TOKEN = '7rarsdzy7Xi2Cc5mrTBzwNDrjNyCg5AN';
 const TABLE_ID = 106;
 
 const COLORES_SEDES = {
-  'Calle 9':         '#6366f1',
-  'Parque del Perro':'#22d3ee',
-  'Caney':           '#f59e0b',
-  'Flora':           '#a78bfa',
-  'Jamundi':         '#34d399',
+  'Calle 9':          '#6366f1',
+  'Parque del Perro': '#22d3ee',
+  'Caney':            '#f59e0b',
+  'Flora':            '#a78bfa',
+  'Jamundi':          '#34d399',
 };
+
+const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
 async function cargarDatos() {
   const res = await fetch(
-    `${BASEROW_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true&size=100`,
+    `${BASEROW_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true&size=200`,
     { headers: { Authorization: `Token ${TOKEN}` } }
   );
   const data = await res.json();
@@ -132,21 +176,126 @@ function estadoBadge(estado) {
     'cancelada':      'badge-cancelada',
     'completada':     'badge-completada',
   };
-  const cls = map[estado] || 'bg-slate-700 text-slate-300';
+  const cls = map[estado] || 'bg-stone-700 text-stone-300';
   const label = estado ? estado.replace('_',' ') : 'sin estado';
   return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${cls}">${label}</span>`;
 }
 
 function renderKPIs(rows) {
-  const total = rows.length;
-  const confirmadas = rows.filter(r => r.Estado?.value === 'confirmada').length;
-  const pendiente   = rows.filter(r => r.Estado?.value === 'pendiente_pago').length;
-  const canceladas  = rows.filter(r => r.Estado?.value === 'cancelada').length;
+  document.getElementById('kpi-total').textContent       = rows.length;
+  document.getElementById('kpi-confirmadas').textContent = rows.filter(r => r.Estado?.value === 'confirmada').length;
+  document.getElementById('kpi-pendiente').textContent   = rows.filter(r => r.Estado?.value === 'pendiente_pago').length;
+  document.getElementById('kpi-canceladas').textContent  = rows.filter(r => r.Estado?.value === 'cancelada').length;
+}
 
-  document.getElementById('kpi-total').textContent       = total;
-  document.getElementById('kpi-confirmadas').textContent = confirmadas;
-  document.getElementById('kpi-pendiente').textContent   = pendiente;
-  document.getElementById('kpi-canceladas').textContent  = canceladas;
+function renderProximas(rows) {
+  const ahora = new Date();
+  const activas = rows
+    .filter(r => r.Fecha && r.Hora && ['confirmada','pendiente_pago'].includes(r.Estado?.value))
+    .map(r => {
+      const dt = new Date(`${r.Fecha}T${r.Hora}:00`);
+      return { ...r, dt };
+    })
+    .filter(r => r.dt > ahora)
+    .sort((a, b) => a.dt - b.dt)
+    .slice(0, 3);
+
+  const el = document.getElementById('proximas-reservas');
+  if (!activas.length) {
+    el.innerHTML = '<p class="text-stone-500 text-sm text-center py-4">Sin reservas próximas</p>';
+    return;
+  }
+
+  el.innerHTML = activas.map(r => {
+    const diff = r.dt - ahora;
+    const horas = Math.floor(diff / 3600000);
+    const mins  = Math.floor((diff % 3600000) / 60000);
+    const countdown = horas > 0 ? `en ${horas}h ${mins}m` : `en ${mins}m`;
+    const sede = r.Sede?.value || '—';
+    const color = COLORES_SEDES[sede] || '#94a3b8';
+    return `
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-stone-900/60 border border-stone-800">
+        <div class="w-1 h-10 rounded-full flex-shrink-0" style="background:${color}"></div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white text-sm font-medium truncate">${r.Nombre || '—'}</p>
+          <p class="text-stone-400 text-xs">${sede} · ${r.Personas || '?'} personas</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <p class="text-amber-400 text-xs font-semibold countdown-tick">${countdown}</p>
+          <p class="text-stone-500 text-xs">${r.Hora}</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderSedeActiva(rows) {
+  const counts = {};
+  rows.forEach(r => {
+    const s = r.Sede?.value || 'Sin sede';
+    counts[s] = (counts[s] || 0) + 1;
+  });
+  const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+  const el = document.getElementById('sede-activa');
+  if (!top) return;
+  const color = COLORES_SEDES[top[0]] || '#94a3b8';
+  const pct = Math.round((top[1] / rows.length) * 100);
+  el.innerHTML = `
+    <div class="text-5xl mb-3">👑</div>
+    <p class="text-2xl font-bold text-white mb-1">${top[0]}</p>
+    <p class="text-stone-400 text-sm mb-3">${top[1]} reservas · ${pct}% del total</p>
+    <div class="w-full bg-stone-800 rounded-full h-2">
+      <div class="h-2 rounded-full transition-all" style="width:${pct}%;background:${color}"></div>
+    </div>`;
+}
+
+function renderHoraPico(rows) {
+  const counts = {};
+  rows.forEach(r => {
+    if (r.Hora) counts[r.Hora] = (counts[r.Hora] || 0) + 1;
+  });
+  const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+  const el = document.getElementById('hora-pico');
+  if (!top) return;
+  el.innerHTML = `
+    <div class="text-5xl mb-3">🔥</div>
+    <p class="text-4xl font-bold text-amber-400 mb-1">${top[0]}</p>
+    <p class="text-stone-400 text-sm">${top[1]} reservas en esa hora</p>
+    <div class="mt-3 px-4 py-1.5 rounded-full text-xs font-semibold text-amber-900 bg-amber-400">
+      Hora más solicitada
+    </div>`;
+}
+
+function renderHeatmap(rows) {
+  const counts = Array(7).fill(0);
+  rows.forEach(r => {
+    if (r.Fecha) {
+      const d = new Date(r.Fecha + 'T12:00:00');
+      counts[d.getDay()]++;
+    }
+  });
+  const max = Math.max(...counts, 1);
+  const el = document.getElementById('heatmap');
+
+  const intensityColor = (v) => {
+    const ratio = v / max;
+    if (ratio === 0)    return '#1c1a15';
+    if (ratio < 0.25)   return '#78350f';
+    if (ratio < 0.5)    return '#b45309';
+    if (ratio < 0.75)   return '#d97706';
+    if (ratio < 0.9)    return '#f59e0b';
+    return '#fcd34d';
+  };
+
+  el.innerHTML = DIAS.map((dia, i) => `
+    <div class="flex flex-col items-center gap-2">
+      <div class="heatmap-cell w-full h-16 rounded-lg flex items-center justify-center text-lg font-bold"
+           style="background:${intensityColor(counts[i])};color:${counts[i]>0?'#fff':'#44403c'}"
+           title="${counts[i]} reservas">
+        ${counts[i] || ''}
+      </div>
+      <p class="text-stone-400 text-xs font-medium">${dia}</p>
+    </div>`
+  ).join('');
 }
 
 function renderChartSedes(rows) {
@@ -158,12 +307,11 @@ function renderChartSedes(rows) {
   const labels = Object.keys(counts);
   const values = Object.values(counts);
   const colors = labels.map(l => COLORES_SEDES[l] || '#64748b');
-
   new Chart(document.getElementById('chart-sedes'), {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
     options: {
-      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } },
+      plugins: { legend: { labels: { color: '#a8a29e', font: { size: 12 } } } },
       cutout: '65%',
     }
   });
@@ -171,30 +319,21 @@ function renderChartSedes(rows) {
 
 function renderChartHoras(rows) {
   const counts = {};
-  rows.forEach(r => {
-    const h = r.Hora || 'Sin hora';
-    counts[h] = (counts[h] || 0) + 1;
-  });
-  const sorted = Object.entries(counts).filter(([k]) => k !== 'Sin hora').sort((a,b) => a[0].localeCompare(b[0]));
-  const labels = sorted.map(e => e[0]);
-  const values = sorted.map(e => e[1]);
-
+  rows.forEach(r => { if (r.Hora) counts[r.Hora] = (counts[r.Hora] || 0) + 1; });
+  const sorted = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0]));
+  const maxVal = Math.max(...sorted.map(e => e[1]));
+  const colors = sorted.map(e => e[1] === maxVal ? '#f59e0b' : '#6366f1');
   new Chart(document.getElementById('chart-horas'), {
     type: 'bar',
     data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: '#6366f1',
-        borderRadius: 6,
-        borderSkipped: false,
-      }]
+      labels: sorted.map(e => e[0]),
+      datasets: [{ data: sorted.map(e => e[1]), backgroundColor: colors, borderRadius: 6, borderSkipped: false }]
     },
     options: {
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2130' } },
-        y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: '#1e2130' } },
+        x: { ticks: { color: '#a8a29e' }, grid: { color: '#1e1c16' } },
+        y: { ticks: { color: '#a8a29e', stepSize: 1 }, grid: { color: '#1e1c16' } },
       }
     }
   });
@@ -207,26 +346,34 @@ function renderTabla(rows) {
     if (!b.Fecha) return -1;
     return new Date(b.Fecha) - new Date(a.Fecha);
   });
-
   tbody.innerHTML = sorted.map(r => `
-    <tr class="border-b border-slate-800 hover:bg-white/5 transition-colors">
+    <tr class="border-b border-stone-800 hover:bg-white/5 transition-colors">
       <td class="py-3 pr-4 font-medium text-white">${r.Nombre || '—'}</td>
       <td class="py-3 pr-4">${r.Sede?.value || '—'}</td>
       <td class="py-3 pr-4">${r.Fecha || '—'}</td>
       <td class="py-3 pr-4">${r.Hora || '—'}</td>
       <td class="py-3 pr-4 text-center">${r.Personas || '—'}</td>
       <td class="py-3">${estadoBadge(r.Estado?.value)}</td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
+
+let countdownInterval = null;
 
 async function init() {
   try {
     const rows = await cargarDatos();
     renderKPIs(rows);
+    renderSedeActiva(rows);
+    renderHoraPico(rows);
+    renderHeatmap(rows);
     renderChartSedes(rows);
     renderChartHoras(rows);
     renderTabla(rows);
+    renderProximas(rows);
+
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => renderProximas(rows), 30000);
+
     document.getElementById('last-update').textContent =
       'Actualizado ' + new Date().toLocaleTimeString('es-CO');
   } catch(e) {
@@ -236,7 +383,6 @@ async function init() {
 }
 
 init();
-// Auto-refresh cada 60s
 setInterval(init, 60000);
 </script>
 </body>
