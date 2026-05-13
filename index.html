@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard LUCÍA — Tom Glen Tex-Mex</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  body { background: #0f1117; font-family: 'Inter', system-ui, sans-serif; }
+  .card { background: #1a1d27; border: 1px solid #2a2d3a; }
+  .badge-confirmada   { background:#16a34a22; color:#4ade80; border:1px solid #16a34a44; }
+  .badge-pendiente    { background:#d9770622; color:#fb923c; border:1px solid #d9770644; }
+  .badge-cancelada    { background:#dc262622; color:#f87171; border:1px solid #dc262644; }
+  .badge-completada   { background:#2563eb22; color:#60a5fa; border:1px solid #2563eb44; }
+  .pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+</style>
+</head>
+<body class="min-h-screen p-6">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-8">
+  <div>
+    <h1 class="text-2xl font-bold text-white tracking-tight">Tom Glen Tex-Mex</h1>
+    <p class="text-slate-400 text-sm mt-1">Panel de control — Agente LUCÍA</p>
+  </div>
+  <div class="flex items-center gap-2 text-emerald-400 text-sm">
+    <span class="w-2 h-2 rounded-full bg-emerald-400 pulse inline-block"></span>
+    <span id="last-update">Cargando...</span>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="kpis">
+  <div class="card rounded-xl p-5">
+    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Total reservas</p>
+    <p class="text-4xl font-bold text-white" id="kpi-total">—</p>
+  </div>
+  <div class="card rounded-xl p-5">
+    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Confirmadas</p>
+    <p class="text-4xl font-bold text-emerald-400" id="kpi-confirmadas">—</p>
+  </div>
+  <div class="card rounded-xl p-5">
+    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Pendiente pago</p>
+    <p class="text-4xl font-bold text-orange-400" id="kpi-pendiente">—</p>
+  </div>
+  <div class="card rounded-xl p-5">
+    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Canceladas</p>
+    <p class="text-4xl font-bold text-red-400" id="kpi-canceladas">—</p>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+  <!-- Por sede -->
+  <div class="card rounded-xl p-5">
+    <p class="text-white font-semibold mb-4">Reservas por sede</p>
+    <canvas id="chart-sedes" height="200"></canvas>
+  </div>
+
+  <!-- Por hora -->
+  <div class="card rounded-xl p-5">
+    <p class="text-white font-semibold mb-4">Distribución por hora</p>
+    <canvas id="chart-horas" height="200"></canvas>
+  </div>
+
+</div>
+
+<!-- Tabla de reservas -->
+<div class="card rounded-xl p-5">
+  <p class="text-white font-semibold mb-4">Últimas reservas</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+          <th class="text-left pb-3 pr-4">Nombre</th>
+          <th class="text-left pb-3 pr-4">Sede</th>
+          <th class="text-left pb-3 pr-4">Fecha</th>
+          <th class="text-left pb-3 pr-4">Hora</th>
+          <th class="text-left pb-3 pr-4">Personas</th>
+          <th class="text-left pb-3">Estado</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-reservas" class="text-slate-300"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const BASEROW_URL = 'https://baserow.nicolasautomation.com';
+const TOKEN = '7rarsdzy7Xi2Cc5mrTBzwNDrjNyCg5AN';
+const TABLE_ID = 106;
+
+const COLORES_SEDES = {
+  'Calle 9':         '#6366f1',
+  'Parque del Perro':'#22d3ee',
+  'Caney':           '#f59e0b',
+  'Flora':           '#a78bfa',
+  'Jamundi':         '#34d399',
+};
+
+async function cargarDatos() {
+  const res = await fetch(
+    `${BASEROW_URL}/api/database/rows/table/${TABLE_ID}/?user_field_names=true&size=100`,
+    { headers: { Authorization: `Token ${TOKEN}` } }
+  );
+  const data = await res.json();
+  return data.results;
+}
+
+function estadoBadge(estado) {
+  const map = {
+    'confirmada':     'badge-confirmada',
+    'pendiente_pago': 'badge-pendiente',
+    'cancelada':      'badge-cancelada',
+    'completada':     'badge-completada',
+  };
+  const cls = map[estado] || 'bg-slate-700 text-slate-300';
+  const label = estado ? estado.replace('_',' ') : 'sin estado';
+  return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${cls}">${label}</span>`;
+}
+
+function renderKPIs(rows) {
+  const total = rows.length;
+  const confirmadas = rows.filter(r => r.Estado?.value === 'confirmada').length;
+  const pendiente   = rows.filter(r => r.Estado?.value === 'pendiente_pago').length;
+  const canceladas  = rows.filter(r => r.Estado?.value === 'cancelada').length;
+
+  document.getElementById('kpi-total').textContent       = total;
+  document.getElementById('kpi-confirmadas').textContent = confirmadas;
+  document.getElementById('kpi-pendiente').textContent   = pendiente;
+  document.getElementById('kpi-canceladas').textContent  = canceladas;
+}
+
+function renderChartSedes(rows) {
+  const counts = {};
+  rows.forEach(r => {
+    const s = r.Sede?.value || 'Sin sede';
+    counts[s] = (counts[s] || 0) + 1;
+  });
+  const labels = Object.keys(counts);
+  const values = Object.values(counts);
+  const colors = labels.map(l => COLORES_SEDES[l] || '#64748b');
+
+  new Chart(document.getElementById('chart-sedes'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } },
+      cutout: '65%',
+    }
+  });
+}
+
+function renderChartHoras(rows) {
+  const counts = {};
+  rows.forEach(r => {
+    const h = r.Hora || 'Sin hora';
+    counts[h] = (counts[h] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).filter(([k]) => k !== 'Sin hora').sort((a,b) => a[0].localeCompare(b[0]));
+  const labels = sorted.map(e => e[0]);
+  const values = sorted.map(e => e[1]);
+
+  new Chart(document.getElementById('chart-horas'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: '#6366f1',
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2130' } },
+        y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: '#1e2130' } },
+      }
+    }
+  });
+}
+
+function renderTabla(rows) {
+  const tbody = document.getElementById('tabla-reservas');
+  const sorted = [...rows].filter(r => r.Nombre).sort((a,b) => {
+    if (!a.Fecha) return 1;
+    if (!b.Fecha) return -1;
+    return new Date(b.Fecha) - new Date(a.Fecha);
+  });
+
+  tbody.innerHTML = sorted.map(r => `
+    <tr class="border-b border-slate-800 hover:bg-white/5 transition-colors">
+      <td class="py-3 pr-4 font-medium text-white">${r.Nombre || '—'}</td>
+      <td class="py-3 pr-4">${r.Sede?.value || '—'}</td>
+      <td class="py-3 pr-4">${r.Fecha || '—'}</td>
+      <td class="py-3 pr-4">${r.Hora || '—'}</td>
+      <td class="py-3 pr-4 text-center">${r.Personas || '—'}</td>
+      <td class="py-3">${estadoBadge(r.Estado?.value)}</td>
+    </tr>
+  `).join('');
+}
+
+async function init() {
+  try {
+    const rows = await cargarDatos();
+    renderKPIs(rows);
+    renderChartSedes(rows);
+    renderChartHoras(rows);
+    renderTabla(rows);
+    document.getElementById('last-update').textContent =
+      'Actualizado ' + new Date().toLocaleTimeString('es-CO');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('last-update').textContent = 'Error al cargar datos';
+  }
+}
+
+init();
+// Auto-refresh cada 60s
+setInterval(init, 60000);
+</script>
+</body>
+</html>
