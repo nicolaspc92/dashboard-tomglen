@@ -6,47 +6,62 @@
 <title>Dashboard LUCÍA — Tom Glen Tex-Mex</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body { background: #0f1117; font-family: 'Inter', system-ui, sans-serif; }
-  .card { background: #1a1d27; border: 1px solid #2a2d3a; }
+  body { background: #0f0e0c; font-family: 'Inter', system-ui, sans-serif; }
+  .card { background: #1a1812; border: 1px solid #2e2a20; }
   .badge-confirmada   { background:#16a34a22; color:#4ade80; border:1px solid #16a34a44; }
   .badge-pendiente    { background:#d9770622; color:#fb923c; border:1px solid #d9770644; }
   .badge-cancelada    { background:#dc262622; color:#f87171; border:1px solid #dc262644; }
   .badge-completada   { background:#2563eb22; color:#60a5fa; border:1px solid #2563eb44; }
   .pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .header-brand { font-family: 'Playfair Display', serif; }
+  .accent-line { background: linear-gradient(90deg, #c2780a, #e8a020, #c2780a); height: 2px; }
+  .kpi-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
 </style>
 </head>
 <body class="min-h-screen p-6">
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-8">
-  <div>
-    <h1 class="text-2xl font-bold text-white tracking-tight">Tom Glen Tex-Mex</h1>
-    <p class="text-slate-400 text-sm mt-1">Panel de control — Agente LUCÍA</p>
+<div class="mb-8">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-5">
+      <img src="https://res.cloudinary.com/proyectohibrido/image/upload/v1778683383/tom-glen/logo-tomglen.png"
+           alt="Tom Glen" class="h-16 w-auto object-contain" />
+      <div>
+        <h1 class="header-brand text-3xl font-bold text-amber-400 tracking-tight">Tom Glen Tex-Mex</h1>
+        <p class="text-stone-400 text-sm mt-0.5 tracking-widest uppercase">Panel de control · Agente LUCÍA</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-emerald-400 text-sm">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 pulse inline-block"></span>
+      <span id="last-update">Cargando...</span>
+    </div>
   </div>
-  <div class="flex items-center gap-2 text-emerald-400 text-sm">
-    <span class="w-2 h-2 rounded-full bg-emerald-400 pulse inline-block"></span>
-    <span id="last-update">Cargando...</span>
-  </div>
+  <div class="accent-line mt-4 rounded-full"></div>
 </div>
 
 <!-- KPIs -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="kpis">
-  <div class="card rounded-xl p-5">
-    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Total reservas</p>
+  <div class="card rounded-xl p-5 border-t-2 border-amber-600">
+    <div class="kpi-icon">🍽️</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Total reservas</p>
     <p class="text-4xl font-bold text-white" id="kpi-total">—</p>
   </div>
-  <div class="card rounded-xl p-5">
-    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Confirmadas</p>
+  <div class="card rounded-xl p-5 border-t-2 border-emerald-600">
+    <div class="kpi-icon">✅</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Confirmadas</p>
     <p class="text-4xl font-bold text-emerald-400" id="kpi-confirmadas">—</p>
   </div>
-  <div class="card rounded-xl p-5">
-    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Pendiente pago</p>
+  <div class="card rounded-xl p-5 border-t-2 border-orange-600">
+    <div class="kpi-icon">💳</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Pendiente pago</p>
     <p class="text-4xl font-bold text-orange-400" id="kpi-pendiente">—</p>
   </div>
-  <div class="card rounded-xl p-5">
-    <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Canceladas</p>
+  <div class="card rounded-xl p-5 border-t-2 border-red-700">
+    <div class="kpi-icon">❌</div>
+    <p class="text-stone-400 text-xs uppercase tracking-widest mb-2">Canceladas</p>
     <p class="text-4xl font-bold text-red-400" id="kpi-canceladas">—</p>
   </div>
 </div>
@@ -56,13 +71,13 @@
 
   <!-- Por sede -->
   <div class="card rounded-xl p-5">
-    <p class="text-white font-semibold mb-4">Reservas por sede</p>
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">📍 Reservas por sede</p>
     <canvas id="chart-sedes" height="200"></canvas>
   </div>
 
   <!-- Por hora -->
   <div class="card rounded-xl p-5">
-    <p class="text-white font-semibold mb-4">Distribución por hora</p>
+    <p class="text-amber-400 font-semibold mb-4 tracking-wide">🕐 Distribución por hora</p>
     <canvas id="chart-horas" height="200"></canvas>
   </div>
 
@@ -70,7 +85,7 @@
 
 <!-- Tabla de reservas -->
 <div class="card rounded-xl p-5">
-  <p class="text-white font-semibold mb-4">Últimas reservas</p>
+  <p class="text-amber-400 font-semibold mb-4 tracking-wide">📋 Últimas reservas</p>
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
