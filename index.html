@@ -298,46 +298,6 @@ function renderHeatmap(rows) {
   ).join('');
 }
 
-function renderChartSedes(rows) {
-  const counts = {};
-  rows.forEach(r => {
-    const s = r.Sede?.value || 'Sin sede';
-    counts[s] = (counts[s] || 0) + 1;
-  });
-  const labels = Object.keys(counts);
-  const values = Object.values(counts);
-  const colors = labels.map(l => COLORES_SEDES[l] || '#64748b');
-  new Chart(document.getElementById('chart-sedes'), {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
-    options: {
-      plugins: { legend: { labels: { color: '#a8a29e', font: { size: 12 } } } },
-      cutout: '65%',
-    }
-  });
-}
-
-function renderChartHoras(rows) {
-  const counts = {};
-  rows.forEach(r => { if (r.Hora) counts[r.Hora] = (counts[r.Hora] || 0) + 1; });
-  const sorted = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0]));
-  const maxVal = Math.max(...sorted.map(e => e[1]));
-  const colors = sorted.map(e => e[1] === maxVal ? '#f59e0b' : '#6366f1');
-  new Chart(document.getElementById('chart-horas'), {
-    type: 'bar',
-    data: {
-      labels: sorted.map(e => e[0]),
-      datasets: [{ data: sorted.map(e => e[1]), backgroundColor: colors, borderRadius: 6, borderSkipped: false }]
-    },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#a8a29e' }, grid: { color: '#1e1c16' } },
-        y: { ticks: { color: '#a8a29e', stepSize: 1 }, grid: { color: '#1e1c16' } },
-      }
-    }
-  });
-}
 
 function renderTabla(rows) {
   const tbody = document.getElementById('tabla-reservas');
@@ -358,6 +318,51 @@ function renderTabla(rows) {
 }
 
 let countdownInterval = null;
+let chartSedes = null;
+let chartHoras = null;
+
+function renderChartSedesSafe(rows) {
+  if (chartSedes) { chartSedes.destroy(); chartSedes = null; }
+  const counts = {};
+  rows.forEach(r => {
+    const s = r.Sede?.value || 'Sin sede';
+    counts[s] = (counts[s] || 0) + 1;
+  });
+  const labels = Object.keys(counts);
+  const values = Object.values(counts);
+  const colors = labels.map(l => COLORES_SEDES[l] || '#64748b');
+  chartSedes = new Chart(document.getElementById('chart-sedes'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      plugins: { legend: { labels: { color: '#a8a29e', font: { size: 12 } } } },
+      cutout: '65%',
+    }
+  });
+}
+
+function renderChartHorasSafe(rows) {
+  if (chartHoras) { chartHoras.destroy(); chartHoras = null; }
+  const counts = {};
+  rows.forEach(r => { if (r.Hora) counts[r.Hora] = (counts[r.Hora] || 0) + 1; });
+  const sorted = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0]));
+  const maxVal = Math.max(...sorted.map(e => e[1]));
+  const colors = sorted.map(e => e[1] === maxVal ? '#f59e0b' : '#6366f1');
+  chartHoras = new Chart(document.getElementById('chart-horas'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(e => e[0]),
+      datasets: [{ data: sorted.map(e => e[1]), backgroundColor: colors, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#a8a29e' }, grid: { color: '#1e1c16' } },
+        y: { ticks: { color: '#a8a29e', stepSize: 1 }, grid: { color: '#1e1c16' } },
+      }
+    }
+  });
+}
 
 async function init() {
   try {
@@ -366,8 +371,8 @@ async function init() {
     renderSedeActiva(rows);
     renderHoraPico(rows);
     renderHeatmap(rows);
-    renderChartSedes(rows);
-    renderChartHoras(rows);
+    renderChartSedesSafe(rows);
+    renderChartHorasSafe(rows);
     renderTabla(rows);
     renderProximas(rows);
 
@@ -377,8 +382,8 @@ async function init() {
     document.getElementById('last-update').textContent =
       'Actualizado ' + new Date().toLocaleTimeString('es-CO');
   } catch(e) {
-    console.error(e);
-    document.getElementById('last-update').textContent = 'Error al cargar datos';
+    console.error('Dashboard error:', e);
+    document.getElementById('last-update').textContent = 'Error: ' + e.message;
   }
 }
 
